@@ -20,21 +20,21 @@ Run Launch_me_to_filter.py to filter all the products pending to filter of the "
 
 EXAMPLES:
 
-    This example runs the script will all filters deactivated (i.e. the saved NC file will be equal to the original):
+This example runs the script will all filters deactivated (i.e. the saved NC file will be equal to the original):
     
     run Launch_me_to_filter.py --Filter_by_uncertainty_off --Filter_by_NOBS_off --Filter_bits
 
-    These three examples do exactly the same, they as correspond with the default input values:
+These three examples do exactly the same, as they correspond with the default input values:
     
     run Launch_me_to_filter.py
     run Launch_me_to_filter.py --Thr_uncertainty 0.15 --Thr_NOBS 2 --Filter_bits 0 1 2 3 4 5 6 7
     run Launch_me_to_filter.py --Filter_by_uncertainty_on --Thr_uncertainty 0.15 --Filter_by_NOBS_on --Thr_NOBS 2 --Filter_bits 0 1 2 3 4 5 6 7
 
-    This example sets the threshold for uncertainty to 0.28 (i.e. all pixels with uncertainties equal or greater than 0.28 will be excluded), deactivates the filter for the Number of Observations and only excludes those pixels with flags in the bits 0, 2, 4 and 7:
+This example sets the threshold for uncertainty to 0.28 (i.e. all pixels with uncertainties equal or greater than 0.28 will be excluded), deactivates the filter for the Number of Observations and only excludes those pixels with flags in the bits 0, 2, 4 and 7:
     
     run Launch_me_to_filter.py --Thr_uncertainty 0.28 --Filter_by_NOBS_off --Filter_bits 0 2 4 7
     
-# WARNINGS
+# WARNINGS ⚠️
 The directory must contain a ".credentials.ini" file with your credentials to log in into CDSE (https://dataspace.copernicus.eu/).
 This file must follow the next structure:
         

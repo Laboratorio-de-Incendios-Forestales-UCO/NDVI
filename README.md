@@ -1,24 +1,25 @@
 # NDVI
-This family of scripts download, filter and process the product "Normalised Difference Vegetation Index 2014-present (raster 300 m), global, 10-daily – version 3" from Copernicus with DOI: "https://doi.org/10.2909/905223f4-2c3d-4cb6-ad8c-d6d065707465".
+This family of scripts download, filter and process the product "Normalised Difference Vegetation Index 2014-present (raster 300 m), global, 10-daily – version 3" from Copernicus, with DOI: 10.2909/905223f4-2c3d-4cb6-ad8c-d6d065707465".  The process includes scripts provided by Copernicus ("https://documentation.dataspace.copernicus.eu/APIs/S3.html").
 
-# LICENSE
-This project is licensed under the MIT License - see the LICENSE file for details.
-If you use this project, please provide proper attribution to LABIF (https://labif.es/).
+NOTE: Script to process has not been released yet.
 
 # DESCRIPTION OF THE PRODUCTS
-
-# Launch_me_to_download_NDVI
+## Launch_me_to_download_NDVI
 Version 20260206a (Last modified by @JuananMunoz)
 Run Launch_me_to_download_NDVI.py to download all the products pending to download of the "Normalised Difference Vegetation Index 2014-present (raster 300 m), global, 10-daily – version 3" (DOI: "https://doi.org/10.2909/905223f4-2c3d-4cb6-ad8c-d6d065707465") product of CLMS.
 
-# Launch_me_to_filter
+### How to use it:
+
+    run Launch_me_to_download_NDVI.py
+
+## Launch_me_to_filter
 Version 20260212a (Last modified by @JuananMunoz)
 Run Launch_me_to_filter.py to filter all the products pending to filter of the "Normalised Difference Vegetation Index 2014-present (raster 300 m), global, 10-daily – version 3" (DOI: "https://doi.org/10.2909/905223f4-2c3d-4cb6-ad8c-d6d065707465") product of CLMS, excluding all pixels with:
   - An uncertainty greater than desired
   - A number of observations smaller than desired
   - Selected flags (See table 7 in the user manual provided by Copernicus)
 
-EXAMPLES:
+### How to use it:
 
 This example runs the script will all filters deactivated (i.e. the saved NC file will be equal to the original):
     
@@ -34,12 +35,16 @@ This example sets the threshold for uncertainty to 0.28 (i.e. all pixels with un
     
     run Launch_me_to_filter.py --Thr_uncertainty 0.28 --Filter_by_NOBS_off --Filter_bits 0 2 4 7
     
-# WARNINGS ⚠️
-The directory must contain a ".credentials.ini" file with your credentials to log in into CDSE (https://dataspace.copernicus.eu/).
+# ⚠️ WARNINGS
+The directory must contain a ".credentials.ini" file with your credentials to log in into CDSE (https://dataspace.copernicus.eu/) and download the products.
 This file must follow the next structure:
         
       [cdse]
       username = username@example.org
       password = MyPa5sWoRd
 
-CDSE sets quotas and limitations for the downloads ("https://documentation.dataspace.copernicus.eu/Quotas.html"). Reaching these quotas and limitations triggers a Runtime Error while creating temporary S3 credentials (error #403). 
+CDSE sets quotas and limitations for the downloads ("https://documentation.dataspace.copernicus.eu/Quotas.html"). Reaching these quotas and limitations triggers a Runtime Error while creating temporary S3 credentials (error #403).
+
+# LICENSE
+This project is licensed under the MIT License - see the LICENSE file for details.
+If you use this project, please provide proper attribution to LABIF (https://labif.es/).

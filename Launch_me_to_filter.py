@@ -2,6 +2,7 @@
 print(
 """
 TRACKING:
+    https://doi.org/10.5281/zenodo.18620398
     Product developped by LABIF-UCO ("https://labif.es/").
     Version 20260212a (last modified by Juanan).
     
@@ -455,3 +456,4 @@ def main():
 # %% RING BELL
 if __name__ == "__main__":
     main()
+

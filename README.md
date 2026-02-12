@@ -3,7 +3,7 @@
 
 This family of scripts download, filter and process the product "Normalised Difference Vegetation Index 2014-present (raster 300 m), global, 10-daily – version 3" from Copernicus, with DOI: 10.2909/905223f4-2c3d-4cb6-ad8c-d6d065707465".  The process includes scripts provided by Copernicus ("https://documentation.dataspace.copernicus.eu/APIs/S3.html").
 
-NOTE: Script to process has not been released yet.
+NOTE: The script to process the NDVI has not been released yet.
 
 # DESCRIPTION OF THE PRODUCTS
 ## Launch_me_to_download_NDVI

@@ -2,6 +2,7 @@
 print(
 """
 TRACKING:
+    https://doi.org/10.5281/zenodo.18620398
     Product developped by LABIF-UCO ("https://labif.es/").
     Version 20260206a (last modified by Juanan).
     The process includes scripts provided by Copernicus ("https://documentation.dataspace.copernicus.eu/APIs/S3.html").
@@ -438,3 +439,4 @@ def main():
 # %% RING BELL
 if __name__ == "__main__":
     main()
+

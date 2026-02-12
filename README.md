@@ -45,6 +45,22 @@ This file must follow the next structure:
 
 CDSE sets quotas and limitations for the downloads ("https://documentation.dataspace.copernicus.eu/Quotas.html"). Reaching these quotas and limitations triggers a Runtime Error while creating temporary S3 credentials (error #403).
 
+## Requirements:
+Python with:
+  - argparse
+  - boto3
+  - configparser
+  - json
+  - numpy
+  - os
+  - pandas
+  - pathlib
+  - requests
+  - sys
+  - time
+  - tqdm
+  - xarray
+
 # LICENSE
 This project is licensed under the MIT License - see the LICENSE file for details.
 If you use this project, please provide proper attribution to LABIF (https://labif.es/).

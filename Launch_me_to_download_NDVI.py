@@ -4,7 +4,7 @@ print(
 TRACKING:
     https://doi.org/10.5281/zenodo.18620398
     Product developped by LABIF-UCO ("https://labif.es/").
-    Version 20260206a (last modified by Juanan).
+    Version 20260219a (last modified by Juanan).
     The process includes scripts provided by Copernicus ("https://documentation.dataspace.copernicus.eu/APIs/S3.html").
     
 OBJECTIVE:
@@ -264,24 +264,37 @@ def get_access_token(config, _username, _password):
     if response.status_code == 200:
         return response.json()["access_token"]
     raise RuntimeError(
-        f"Failed to retrieve access token ({response.status_code})"
+        f"          - Failed to retrieve access token ({response.status_code})"
     )
 
 
-def get_eo_product_details(config, headers, eo_product_name):
+def get_eo_product_details(config, headers, eo_product_name, s3_creds):
     print(f"         Running: {get_eo_product_details.__name__}()")
-    odata_url = (
-        f"{config['odata_base_url']}?$filter=Name eq '{eo_product_name}'"
-    )
-    response = requests.get(odata_url, headers=headers)
-
-    if response.status_code == 200:
-        product = response.json()["value"][0]
-        return product["Id"], product["S3Path"]
-
-    raise RuntimeError(
-        f"Failed to retrieve EO product details ({response.status_code})"
-    )
+    
+    try:
+        odata_url = (
+            f"{config['odata_base_url']}?$filter=Name eq '{eo_product_name}'"
+        )
+        response = requests.get(odata_url, headers=headers)
+    
+        if response.status_code == 200:
+            product = response.json()["value"][0]
+            return product["Id"], product["S3Path"]
+    
+        raise RuntimeError(
+            f"          - Failed to retrieve EO product details ({response.status_code})"
+        )
+    
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 403: # This error is triggered when the session expires. To solve it, clean the credentials and launch the main() again to open a new session
+            print("Error 403: launching main() again to open a new session")
+            f_clean_up(s3_creds['access_id'],headers)
+            main() 
+        else:
+            print("HTTP error:", e.response.status_code)
+        
+    except Exception as e:
+        print("          - Error getting EO product details:", e)
 
 
 def get_temporary_s3_credentials(headers):
@@ -296,7 +309,7 @@ def get_temporary_s3_credentials(headers):
         return response.json()
 
     raise RuntimeError(
-        f"Failed to create temporary S3 credentials ({response.status_code})"
+        f"          - Failed to create temporary S3 credentials ({response.status_code})"
     )
 
 
@@ -349,57 +362,45 @@ def traverse_and_download_s3(s3_resource, bucket, prefix, local_root, failed):
             dest,
             failed,
         )
+       
 
-
-
-def f_Downloader(_username, _password, eo_product_name, config, output_dir):
+def f_Downloader(headers, s3_resource, s3_creds, eo_product_name, config, output_dir):
+    # Modified by chatGPT to requests token and temporal credentials just once
     print(f"         Running: {f_Downloader.__name__}()")
-    access_token = get_access_token(config, _username, _password)
 
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Accept": "application/json",
-    }
-
+    # Obtener detalles del producto (solo metadatos)
     _, s3_path = get_eo_product_details(
-        config, headers, eo_product_name
+        config, headers, eo_product_name, s3_creds
     )
+
     bucket, prefix = s3_path.lstrip("/").split("/", 1)
 
-    s3_creds = get_temporary_s3_credentials(headers)
-
-    time.sleep(5)
-
-    s3_resource = boto3.resource(
-        "s3",
-        endpoint_url=config["s3_endpoint_url"],
-        aws_access_key_id=s3_creds["access_id"],
-        aws_secret_access_key=s3_creds["secret"],
-    )
-
-    # os.makedirs(eo_product_name, exist_ok=True)
-
     failed = []
+
     traverse_and_download_s3(
         s3_resource,
         bucket,
         prefix,
-        # os.path.join(output_dir, eo_product_name),
         output_dir,
         failed,
     )
 
-    requests.delete(
-        f"https://s3-keys-manager.cloudferro.com/api/user/credentials/access_id/"
-        f"{s3_creds['access_id']}",
-        headers=headers,
-    )
-
     if failed:
         raise RuntimeError(
-            f"Download incomplete ({len(failed)} files failed)"
+            f"          - Download incomplete ({len(failed)} files failed)"
         )
-        
+
+
+def f_clean_up(s3_creds_access_id,headers):
+    # Clean the credentials, once the script finish with them
+    print(f"         Running: {f_clean_up.__name__}()")
+    
+    requests.delete(
+        f"https://s3-keys-manager.cloudferro.com/api/user/credentials/access_id/"
+        f"{s3_creds_access_id}",
+        headers=headers,
+    )
+    
 
 # %% MAIN FUNCTION
 def main():
@@ -411,30 +412,65 @@ def main():
     # %% IMPORT THE CREDENTIALS
     # Credentials to log in CDSE (https://dataspace.copernicus.eu/)
     _username, _password = f_Import_credentials()
-    
-    # %% QUEUE THE BUCKET LIST
-    # Download the csv with all the available dates.
-    # Note that this will be downloaded in the input folder, as it will be an input in a later process
-    # Then, compare the available dates with the currently downloaded ones and
-    # Create a bucket list with all the files yet to download
-    Bucket_list = f_Bucket_list(Directories)
-    
-    # %% DOWNLOAD THE PRODUCTS
-    counter = 0;
-    for eo_product_name in Bucket_list:
-        
-        print()
-        print(f"       **Downloading {eo_product_name}")
-        
-        f_Downloader(_username, _password, eo_product_name, config, Directories["Outputs_downloaded"])
 
-        counter = counter+1;    
-        print(f"           - {counter} files downloaded. {len(Bucket_list)-counter} files remaining.")
+    # %% AUTHENTICATION (ONLY ONCE)
+    # Still necessary to include code for when teh session expires !!!!!!!!!!!!!!
+    access_token = get_access_token(config, _username, _password)
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json",
+    }    
+
+    # %% CREATE TEMPORARY S3 CREDENTIALS (ONLY ONCE)
+    # Still necessary to include code for when teh session expires !!!!!!!!!!!!!!
+    s3_creds = get_temporary_s3_credentials(headers)
+
+    s3_resource = boto3.resource(
+        "s3",
+        endpoint_url=config["s3_endpoint_url"],
+        aws_access_key_id=s3_creds["access_id"],
+        aws_secret_access_key=s3_creds["secret"],
+    )
+
+    try:
+        # %% BUILD DOWNLOAD QUEUE
+        # Download the csv with all the available dates.
+        # Note that this will be downloaded in the input folder, as it will be an input in a later process
+        # Then, compare the available dates with the currently downloaded ones and
+        # Create a bucket list with all the files yet to download
+        Bucket_list = f_Bucket_list(Directories)
+        
+        counter = 0;    
+        # %% DOWNLOAD LOOP
+        for eo_product_name in Bucket_list:
+            
+            print()
+            print(f"       **Downloading {eo_product_name}")
+            
+            f_Downloader(
+                headers,
+                s3_resource,
+                s3_creds,
+                eo_product_name,
+                config,
+                Directories["Outputs_downloaded"],
+            )
+    
+            counter = counter+1;    
+            print(
+                f"           - {counter} files downloaded. "
+                f"{len(Bucket_list)-counter} files remaining."
+            )
+
+    finally:    
+
+        # %% CLEANUP S3 TEMP CREDENTIALS
+        f_clean_up(s3_creds['access_id'],headers)
 
     # %% ENDSCRIPT
     print()
     print("         Endscript");
-    
     
 # %% RING BELL
 if __name__ == "__main__":

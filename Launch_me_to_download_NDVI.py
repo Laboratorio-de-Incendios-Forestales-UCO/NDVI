@@ -4,7 +4,7 @@ print(
 TRACKING:
     https://doi.org/10.5281/zenodo.18620398
     Product developped by LABIF-UCO ("https://labif.es/").
-    Version 20260219a (last modified by Juanan).
+    Version 20260219b (last modified by Juanan).
     The process includes scripts provided by Copernicus ("https://documentation.dataspace.copernicus.eu/APIs/S3.html").
     
 OBJECTIVE:
@@ -268,34 +268,23 @@ def get_access_token(config, _username, _password):
     )
 
 
-def get_eo_product_details(config, headers, eo_product_name, s3_creds):
+def get_eo_product_details(config, headers, eo_product_name):
     print(f"         Running: {get_eo_product_details.__name__}()")
     
-    try:
-        odata_url = (
-            f"{config['odata_base_url']}?$filter=Name eq '{eo_product_name}'"
-        )
-        response = requests.get(odata_url, headers=headers)
-    
-        if response.status_code == 200:
-            product = response.json()["value"][0]
-            return product["Id"], product["S3Path"]
-    
-        raise RuntimeError(
-            f"          - Failed to retrieve EO product details ({response.status_code})"
-        )
-    
-    except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 403: # This error is triggered when the session expires. To solve it, clean the credentials and launch the main() again to open a new session
-            print("Error 403: launching main() again to open a new session")
-            f_clean_up(s3_creds['access_id'],headers)
-            main() 
-        else:
-            print("HTTP error:", e.response.status_code)
-        
-    except Exception as e:
-        print("          - Error getting EO product details:", e)
 
+    odata_url = (
+        f"{config['odata_base_url']}?$filter=Name eq '{eo_product_name}'"
+    )
+    response = requests.get(odata_url, headers=headers)
+
+    if response.status_code == 200:
+        product = response.json()["value"][0]
+        return product["Id"], product["S3Path"]
+
+    raise RuntimeError(
+        f"          - Failed to retrieve EO product details ({response.status_code})"
+    )
+    
 
 def get_temporary_s3_credentials(headers):
     print(f"         Running: {get_temporary_s3_credentials.__name__}()")
@@ -364,13 +353,13 @@ def traverse_and_download_s3(s3_resource, bucket, prefix, local_root, failed):
         )
        
 
-def f_Downloader(headers, s3_resource, s3_creds, eo_product_name, config, output_dir):
+def f_Downloader(headers, s3_resource, eo_product_name, config, output_dir):
     # Modified by chatGPT to requests token and temporal credentials just once
     print(f"         Running: {f_Downloader.__name__}()")
 
     # Obtener detalles del producto (solo metadatos)
     _, s3_path = get_eo_product_details(
-        config, headers, eo_product_name, s3_creds
+        config, headers, eo_product_name
     )
 
     bucket, prefix = s3_path.lstrip("/").split("/", 1)
@@ -413,8 +402,9 @@ def main():
     # Credentials to log in CDSE (https://dataspace.copernicus.eu/)
     _username, _password = f_Import_credentials()
 
-    # %% AUTHENTICATION (ONLY ONCE)
-    # Still necessary to include code for when teh session expires !!!!!!!!!!!!!!
+    # %% AUTHENTICATION
+    # Create an access token. This token expires after 10 min. 
+    # If the token expires, the server cannot authenticate us and gives back an #401 error.
     access_token = get_access_token(config, _username, _password)
 
     headers = {
@@ -422,8 +412,13 @@ def main():
         "Accept": "application/json",
     }    
 
-    # %% CREATE TEMPORARY S3 CREDENTIALS (ONLY ONCE)
-    # Still necessary to include code for when teh session expires !!!!!!!!!!!!!!
+    # %% CREATE TEMPORARY S3 CREDENTIALS
+    # Use the token to create a temporal credential. 
+    # Check currently active S3 credentials in the dashboard ("https://eodata-s3keysmanager.dataspace.copernicus.eu/panel/s3-credentials")
+    # Error #403 indicates that the server recognized us (i.e. the token works) 
+    # but do not allow us to access the resource. Most probable reason is that 
+    # we have reached some quota or limitation (See Warnings section) os that 
+    # temporary S3 credential expired.
     s3_creds = get_temporary_s3_credentials(headers)
 
     s3_resource = boto3.resource(
@@ -451,7 +446,6 @@ def main():
             f_Downloader(
                 headers,
                 s3_resource,
-                s3_creds,
                 eo_product_name,
                 config,
                 Directories["Outputs_downloaded"],
@@ -475,4 +469,3 @@ def main():
 # %% RING BELL
 if __name__ == "__main__":
     main()
-
